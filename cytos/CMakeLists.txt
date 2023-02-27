@@ -27,7 +27,7 @@ else()
     message("Build type: ${CMAKE_BUILD_TYPE}")
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 message(VERBOSE CXX)
 
 if (WIN32)
@@ -50,10 +50,8 @@ set(SRC_FILES
 if (WIN32)
     add_executable(cytos ${SRC_FILES} "src/main.cpp")
     set_property(TARGET cytos PROPERTY CXX_STANDARD 20)
-    set_property(TARGET cytos PROPERTY
-        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-    target_link_libraries(cytos uSockets zlib libssl libcrypto libuv skia)
+    target_link_libraries(cytos uSockets zlib libssl libcrypto libuv iphlpapi userenv psapi)
 else()
     add_executable(cytos ${SRC_FILES} "src/main.cpp")
     target_link_libraries(cytos uSockets ssl crypto dl z libuv pthread)

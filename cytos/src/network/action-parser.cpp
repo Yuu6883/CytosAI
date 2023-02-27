@@ -6,6 +6,7 @@
 using json = nlohmann::json;
 
 bool AgentManager::parse(AgentManager* manager, string_view buf) {
+    uint64_t start = uv_hrtime();
     auto obj = json::parse(buf, nullptr, false);
     if (obj.is_discarded() || !obj.is_object()) return false;
 
@@ -50,6 +51,10 @@ bool AgentManager::parse(AgentManager* manager, string_view buf) {
 
         actions.push_back(action);
     }
+
+    uint64_t end;
+    auto ms = time_func(start, end);
+    logger::debug("parse time:   %.2fms\n", ms);
 
     manager->act(actions, uint8_t(steps));
     return true;

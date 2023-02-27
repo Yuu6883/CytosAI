@@ -66,6 +66,13 @@ bool Server::open(ServerConfig config) {
                                 if (chunk.length()) {
                                     ctx->data.append(chunk.begin(),
                                                      chunk.end());
+
+                                    logger::debug("Received %lu bytes\n",
+                                                  chunk.size());
+
+                                    uint64_t end;
+                                    auto ms = time_func(ctx->start, end);
+                                    logger::debug("data receive: %.2fms\n", ms);
                                 }
 
                                 if (!isFin || ctx->aborted) return;
@@ -73,9 +80,11 @@ bool Server::open(ServerConfig config) {
                                 bool success =
                                     AgentManager::parse(&manager, ctx->data);
 
-                                uint64_t end;
-                                auto ms = time_func(ctx->start, end);
-                                logger::debug("dt = %.2fms\n", ms);
+                                {
+                                    uint64_t end;
+                                    auto ms = time_func(ctx->start, end);
+                                    logger::debug("total time: %.2fms\n", ms);
+                                }
 
                                 if (success) {
                                     res->end();

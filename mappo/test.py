@@ -8,6 +8,7 @@ def main():
     conn = HTTPConnection("localhost:3000")
     conn.request("POST", f"/init?agents={AGENTS}")
     res = conn.getresponse()
+    res.read()
 
     if res.status != 200:
         print("failed to initialize agents")
@@ -18,18 +19,17 @@ def main():
 
     try:
         while True:
-            conn = HTTPConnection("localhost:3000")
             conn.request("POST", "/act", body=data)
+
             res = conn.getresponse()
+            res.read()
 
             if res.status != 200:
                 print("failed to act")
                 return
             
-            print("+")
     except:
         print("end")
-        pass
 
 if __name__ == "__main__":
     main()
