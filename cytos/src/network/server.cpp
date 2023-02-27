@@ -92,19 +92,15 @@ bool Server::close() {
     return true;
 }
 
-#define PHYSICS_TPS 25
-constexpr uint32_t tick_time = 1000 / PHYSICS_TPS;
-constexpr uint64_t tickNano = tick_time * MS_TO_NANO;
-
-uint64_t origin = uv_hrtime();
-uint64_t total_time() { return uv_hrtime() - origin; };
+constexpr uint32_t PHYSICS_TPS = 25;
+constexpr uint32_t TICK_MS = 1000 / PHYSICS_TPS;
 
 void Server::tick() {
     for (auto [_, engine] : engines) {
         if (!engine->running) continue;
-        engine->__now += 40 * MS_TO_NANO;
+        engine->__now += TICK_MS * MS_TO_NANO;
         // MILLISECONDS
-        engine->tick(40);
+        engine->tick(TICK_MS);
     }
 
     postTick();

@@ -79,7 +79,8 @@ class readline {
         closing = false;
 
         const char* g = std::getenv("GAME_THREADS");
-        uint16_t gt = g ? std::atoi(g) : 1;
+        uint16_t gt = g ? std::atoi(g)
+                        : std::min(std::thread::hardware_concurrency(), 8u);
 
         const char* mode = std::getenv("MODE");
 
