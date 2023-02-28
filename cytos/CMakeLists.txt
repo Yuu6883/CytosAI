@@ -51,9 +51,9 @@ if (WIN32)
     add_executable(cytos ${SRC_FILES} "src/main.cpp")
     set_property(TARGET cytos PROPERTY CXX_STANDARD 20)
 
-    target_link_libraries(cytos uSockets zlib libssl libcrypto libuv iphlpapi userenv psapi)
+    target_link_libraries(cytos uSockets zlib libssl libcrypto libuv iphlpapi userenv psapi cairo pixman-1 libpng16)
 else()
     add_executable(cytos ${SRC_FILES} "src/main.cpp")
-    target_link_libraries(cytos uSockets ssl crypto dl z libuv pthread)
+    target_link_libraries(cytos uSockets ssl crypto dl z libuv pthread cairo png pixman-1)
 endif()
 

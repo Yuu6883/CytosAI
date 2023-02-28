@@ -57,7 +57,8 @@ bool Server::open(ServerConfig config) {
                           })
                     .post(
                         "/act",
-                        [&](auto res, uWS::HttpRequest* req) {
+                        [&](uWS::HttpResponse<false>* res,
+                            uWS::HttpRequest* req) {
                             auto ctx = std::make_shared<read_ctx>();
                             ctx->start = uv_hrtime();
 
@@ -66,10 +67,6 @@ bool Server::open(ServerConfig config) {
                                 if (chunk.length()) {
                                     ctx->data.append(chunk.begin(),
                                                      chunk.end());
-
-                                    logger::debug("Received %lu bytes\n",
-                                                  chunk.size());
-
                                     uint64_t end;
                                     auto ms = time_func(ctx->start, end);
                                     logger::debug("data receive: %.2fms\n", ms);

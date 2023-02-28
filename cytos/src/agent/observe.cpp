@@ -1,83 +1,92 @@
+#include <cairo/cairo.h>
+
 #include "../entity/control.hpp"
 #include "../physics/engine.hpp"
 #include "agent.hpp"
 
 constexpr int32_t DIM = 256;
 
-// static thread_local sk_sp<SkSurface> surface = nullptr;
+static thread_local std::unique_ptr<cairo_surface_t,
+                                    decltype(&cairo_surface_destroy)>
+    surface_ptr(nullptr, &cairo_surface_destroy);
 
-// constexpr SkColor COLORS[12] = {
-//     SkColorSetRGB(0, 255, 148),   SkColorSetRGB(132, 255, 61),
-//     SkColorSetRGB(255, 152, 67),  SkColorSetRGB(0, 240, 234),
-//     SkColorSetRGB(255, 0, 98),    SkColorSetRGB(0, 169, 255),
-//     SkColorSetRGB(255, 226, 0),   SkColorSetRGB(148, 0, 255),
-//     SkColorSetRGB(196, 4, 78),    SkColorSetRGB(192, 255, 58),
-//     SkColorSetRGB(255, 106, 228), SkColorSetRGB(255, 142, 0),
-// };
+struct RGBColor {
+    float r, g, b;
+    RGBColor(){};
+    RGBColor(int r, int g, int b) : r(r / 255.f), g(g / 255.f), b(b / 255.f){};
+};
+
+static const RGBColor COLORS[12] = {
+    RGBColor(0, 255, 148),  RGBColor(132, 255, 61),  RGBColor(255, 152, 67),
+    RGBColor(0, 240, 234),  RGBColor(255, 0, 98),    RGBColor(0, 169, 255),
+    RGBColor(255, 226, 0),  RGBColor(148, 0, 255),   RGBColor(196, 4, 78),
+    RGBColor(192, 255, 58), RGBColor(255, 106, 228), RGBColor(255, 142, 0),
+};
+
+static inline void cairo_set_source_color(cairo_t* ctx, RGBColor color) {
+    cairo_set_source_rgb(ctx, color.r, color.g, color.b);
+};
+
+static inline void cairo_circle(cairo_t* ctx, double x, double y, double r) {
+    cairo_new_path(ctx);
+    cairo_arc(ctx, x, y, r, 0, 2 * M_PI);
+    cairo_close_path(ctx);
+}
 
 string_view Agent::observe() {
     if (!control || !dual || !dual->control) return string_view(nullptr, 0);
 
-    // if (surface == nullptr) {
-    //     surface = SkSurface::MakeRasterN32Premul(DIM, DIM, nullptr);
-    // }
+    if (surface_ptr == nullptr) {
+        surface_ptr.reset(cairo_image_surface_create(
+            cairo_format_t::CAIRO_FORMAT_RGB24, DIM, DIM));
+    }
 
     uint16_t t0 = control->id;
     uint16_t t1 = dual->control->id;
 
-    // Get a canvas object from the surface
-    // SkCanvas* canvas = surface->getCanvas();
+    auto surface = surface_ptr.get();
+    // Get a ctx from the surface
+    cairo_t* ctx = cairo_create(surface);
 
     auto vl = std::max(control->viewport.hw, control->viewport.hh);
     auto& v = control->viewport;
-    // SkRect view_rect = SkRect::MakeXYWH(v.x - vl, v.y - vl, vl * 2, vl * 2);
-    // SkRect screen_rect = SkRect::MakeXYWH(0, 0, DIM, DIM);
 
-    // SkMatrix proj;
-    // bool success = proj.setRectToRect(view_rect, screen_rect,
-    //                                   SkMatrix::ScaleToFit::kCenter_ScaleToFit);
+    double scale = DIM / (vl * 2);
+    double t_x = -((v.x - vl) * scale);
+    double t_y = -((v.y - vl) * scale);
 
-    // if (!success) {
-    //     logger::error("matrix projection failed\n");
-    //     return string_view(nullptr, 0);
-    // }
+    cairo_matrix_t matrix;
+    cairo_matrix_init(&matrix, scale, 0.0, 0.0, scale, t_x, t_y);
+    cairo_transform(ctx, &matrix);
 
     auto map = engine->getMap();
 
-    /*
-    SkRect map_rect;
-    proj.mapRect(map_rect);
-
+    cairo_set_antialias(ctx, CAIRO_ANTIALIAS_GRAY);
     // Draw background
-    canvas->clear(SK_ColorBLACK);
+    cairo_set_source_rgb(ctx, 0, 0, 0);
+    cairo_paint(ctx);
     // Draw map
+    cairo_set_source_color(ctx, RGBColor(17, 17, 17));
+    cairo_rectangle(ctx, map.x - map.hw, map.y - map.hh, map.hw * 2,
+                    map.hh * 2);
+    cairo_fill(ctx);
 
-    SkPaint paint;
-    paint.setAntiAlias(true);
-    paint.setColor(SkColorSetRGB(17, 17, 17));
-    paint.setStyle(SkPaint::kFill_Style);
-
-    canvas->drawRect(map_rect, paint);
-    paint.setColor(SkColorSetRGB(255, 255, 255));
-
-    */
     auto aabb = v.toAABB();
 
+    cairo_set_source_color(ctx, RGBColor(255, 255, 255));
     // Query pellets, no need to sort
     engine->queryGridPL(aabb, [&](Cell* cell) {
-        // SkPoint center = proj.mapXY(cell->x, cell->y);
-        // SkScalar radius = proj.mapRadius(cell->r);
-        // canvas->drawCircle(center.x(), center.y(), radius, paint);
+        cairo_circle(ctx, cell->x, cell->y, cell->r);
+        cairo_fill(ctx);
     });
 
     // Query ejected + virus, no need to sort(?)
     engine->queryGridEV(aabb, [&](Cell* cell) {
-        // SkPoint center = proj.mapXY(cell->x, cell->y);
-        // SkScalar radius = proj.mapRadius(cell->r);
-
-        // paint.setColor(cell->type & EJECT_BIT ? SkColorSetRGB(200, 200, 200)
-        //                                       : SkColorSetRGB(0, 255, 0));
-        // canvas->drawCircle(center.x(), center.y(), radius, paint);
+        cairo_set_source_color(ctx, cell->type & EJECT_BIT
+                                        ? RGBColor(200, 200, 200)
+                                        : RGBColor(0, 255, 0));
+        cairo_circle(ctx, cell->x, cell->y, cell->r);
+        cairo_fill(ctx);
     });
 
     vector<Cell*> cells;
@@ -92,41 +101,31 @@ string_view Agent::observe() {
               [](auto a, auto b) { return a->r < b->r; });
 
     for (auto& cell : cells) {
-        // SkPoint center = proj.mapXY(cell->x, cell->y);
-        // SkScalar radius = proj.mapRadius(cell->r);
+        RGBColor color;
 
-        // SkColor color;
-        // if (cell->type == t0)
-        //     color = SkColorSetRGB(255, 0, 0);
-        // else if (cell->type == t1)
-        //     color = SkColorSetRGB(0, 0, 255);
-        // else
-        //     color = COLORS[cell->type % (sizeof(COLORS) / sizeof(SkColor))];
+        if (cell->type == t0)
+            color = RGBColor(255, 0, 0);
+        else if (cell->type == t1)
+            color = RGBColor(0, 0, 255);
+        else
+            color = COLORS[cell->type % (sizeof(COLORS) / sizeof(RGBColor))];
 
-        // paint.setColor(color);
-        // canvas->drawCircle(center.x(), center.y(), radius, paint);
+        cairo_set_source_color(ctx, color);
+        cairo_circle(ctx, cell->x, cell->y, cell->r);
+        cairo_fill(ctx);
     }
 
-    // canvas->flush();
+    cairo_destroy(ctx);
 
-    // auto img = surface->makeImageSnapshot();
+    unsigned char* data = cairo_image_surface_get_data(surface);
+    int stride = cairo_image_surface_get_stride(surface);
+    int width = cairo_image_surface_get_width(surface);
+    int height = cairo_image_surface_get_height(surface);
 
-    // SkPixmap pixmap;
-    // success = img->peekPixels(&pixmap);
+    if (stride != DIM * 4) {
+        logger::error("Unexpected stride: %i\n", stride);
+        return string_view(nullptr, 0);
+    }
 
-    // if (!success) {
-    //     logger::error("peekPixels failed\n");
-    //     return string_view(nullptr, 0);
-    // }
-
-    // {
-    //     auto data = img->encodeToData(SkEncodedImageFormat::kJPEG, 100);
-    //     SkFILEWStream file((__gid + ".jpeg").c_str());
-    //     file.write(data->data(), data->size());
-    // }
-
-    // return string_view(static_cast<char*>(pixmap.writable_addr()),
-    //                    pixmap.computeByteSize());
-
-    return string_view(nullptr, 0);
+    return string_view((char*)data, stride * height);
 }

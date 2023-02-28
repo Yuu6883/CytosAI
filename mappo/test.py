@@ -18,6 +18,7 @@ def main():
     data = json.dumps({ "actions": actions, "steps": 4 })
 
     try:
+        frame = 0
         while True:
             conn.request("POST", "/act", body=data)
 
@@ -28,8 +29,13 @@ def main():
                 print("failed to act")
                 return
             
+            frame = frame + 1
+            if frame > 50:
+                break
     except:
-        print("end")
+        pass
+    
+    print("end")
 
 if __name__ == "__main__":
     main()
