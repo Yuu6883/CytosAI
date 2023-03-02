@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10.0 FATAL_ERROR)
 
-project (cytos CXX)
+project(cytos CXX)
 
 if (WIN32)
     if(NOT DEFINED VCPKG_TARGET_TRIPLET)
@@ -20,6 +20,21 @@ if (WIN32)
         link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}-static/lib/)
         link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/)
     endif()
+
+    find_package(Python3 ${PYTHON_VERSION} EXACT COMPONENTS NumPy)
+
+    if(Python3_FOUND)
+        message("Found Python3: ${Python3_EXECUTABLE}")
+        message("Python3 version: ${Python3_VERSION}")
+        message("NumPy version: ${Python3_NumPy_VERSION}")
+    else()
+        message(FATAL_ERROR "Python3 not found")
+    endif()
+
+    set(CMAKE_SHARED_LIBRARY_SUFFIX ".pyd")
+    add_library(test SHARED "src/py/module.cpp")
+    target_include_directories(test PRIVATE ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
+    target_link_libraries(test PRIVATE ${Python3_LIBRARIES})
 else()
     include_directories($ENV{VCPKG_ROOT}/installed/x64-linux/include/)
     link_directories($ENV{VCPKG_ROOT}/installed/x64-linux/lib/)

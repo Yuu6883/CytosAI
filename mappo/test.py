@@ -1,10 +1,23 @@
 from http.client import HTTPConnection
 import json
-import time
+import importlib
+import importlib.util
+from os import path
+
+DLL_PATH = path.join(path.dirname(__file__), "..", "cytos", "out", "build", "x64-Release", "test.pyd")
+
+spec = importlib.util.spec_from_file_location("my_module", DLL_PATH)
+my_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(my_module)
+
+def main():
+    arr = my_module.create_array()
+    print(arr)
+
 
 AGENTS = 8
 
-def main():
+def connect():
     conn = HTTPConnection("localhost:3000")
     conn.request("POST", f"/init?agents={AGENTS}")
     res = conn.getresponse()

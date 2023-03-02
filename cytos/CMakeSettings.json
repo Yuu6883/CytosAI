@@ -9,7 +9,13 @@
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
-      "ctestCommandArgs": ""
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "PYTHON_VERSION",
+          "value": "3.9.12"
+        }
+      ]
     },
     {
       "name": "x64-Release",
@@ -21,7 +27,12 @@
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],
-      "variables": []
+      "variables": [
+        {
+          "name": "PYTHON_VERSION",
+          "value": "3.9.12"
+        }
+      ]
     }
   ]
 }

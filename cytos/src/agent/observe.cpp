@@ -4,7 +4,7 @@
 #include "../physics/engine.hpp"
 #include "agent.hpp"
 
-constexpr int32_t DIM = 256;
+constexpr int32_t DIM = 128;
 
 static thread_local std::unique_ptr<cairo_surface_t,
                                     decltype(&cairo_surface_destroy)>
@@ -126,6 +126,9 @@ string_view Agent::observe() {
         logger::error("Unexpected stride: %i\n", stride);
         return string_view(nullptr, 0);
     }
+
+    // for visualizing
+    // cairo_surface_write_to_png(surface, (__gid + ".png").c_str());
 
     return string_view((char*)data, stride * height);
 }
