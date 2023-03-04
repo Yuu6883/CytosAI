@@ -1,8 +1,11 @@
+
 #include "server.hpp"
 
 #include <fstream>
 
 #include "../entity/handle.hpp"
+#include "../misc/logger.hpp"
+#include "../modes/options.hpp"
 #include "writer.hpp"
 
 // Headers
@@ -70,34 +73,11 @@ Server::~Server() {
     engines.clear();
 }
 
-bool Server::close() {
-    if (!isOpen()) return false;
-
-    for (auto [_, e] : engines) e->stop();
-
-    closing = true;
-
-    for (auto socket : sockets) {
-        us_listen_socket_close(0, socket);
-    }
-    sockets.clear();
-
-    for (auto t : threads) {
-        if (t->joinable()) t->join();
-        delete t;
-    }
-    threads.clear();
-
-    logger::debug("Game servers closed\n");
-    return true;
-}
-
 constexpr uint32_t PHYSICS_TPS = 25;
 constexpr uint32_t TICK_MS = 1000 / PHYSICS_TPS;
 
 void Server::tick() {
     for (auto [_, engine] : engines) {
-        if (!engine->running) continue;
         engine->__now += TICK_MS * MS_TO_NANO;
         // MILLISECONDS
         engine->tick(TICK_MS);

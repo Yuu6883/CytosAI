@@ -1,3 +1,4 @@
 .vscode
 cytos/.vs
 cytos/out
+*.png

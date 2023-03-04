@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
@@ -15,9 +16,6 @@
 #include <string_view>
 #include <vector>
 
-#define NOMINMAX
-#include <uv.h>
-
 #define MS_TO_NANO 1000000
 #define MS_TO_NANO_F 1000000.f
 #define SECOND_TO_NANO 1000000000
@@ -28,8 +26,19 @@ using std::string;
 using std::string_view;
 using std::vector;
 
+static inline uint64_t hrtime() {
+    using namespace std::chrono;
+
+    static const high_resolution_clock::time_point time_origin =
+        high_resolution_clock::now();
+
+    return duration_cast<nanoseconds>(high_resolution_clock::now() -
+                                      time_origin)
+        .count();
+}
+
 static inline float time_func(uint64_t nano, uint64_t& out) {
-    out = uv_hrtime();
+    out = hrtime();
     if (out >= nano)
         return (out - nano) / MS_TO_NANO_F;
     else

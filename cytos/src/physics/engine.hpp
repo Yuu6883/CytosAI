@@ -7,9 +7,6 @@
 #include <unordered_set>
 #include <vector>
 
-#define NOMINMAX
-#include <uv.h>
-
 using std::function;
 using std::list;
 using std::pair;

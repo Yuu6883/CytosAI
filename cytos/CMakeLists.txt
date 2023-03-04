@@ -32,9 +32,6 @@ if (WIN32)
     endif()
 
     set(CMAKE_SHARED_LIBRARY_SUFFIX ".pyd")
-    add_library(test SHARED "src/py/module.cpp")
-    target_include_directories(test PRIVATE ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
-    target_link_libraries(test PRIVATE ${Python3_LIBRARIES})
 else()
     include_directories($ENV{VCPKG_ROOT}/installed/x64-linux/include/)
     link_directories($ENV{VCPKG_ROOT}/installed/x64-linux/lib/)
@@ -58,17 +55,31 @@ set(SRC_FILES
     "src/agent/manager.cpp"
     "src/agent/observe.cpp"
     "src/network/server.cpp"
-    "src/network/server-open.cpp"
-    "src/network/action-parser.cpp"
 )
 
+set(EXE_FILES
+    "src/network/server-network.cpp"
+    "src/network/action-parser.cpp"
+    "src/main.cpp"
+)
+
+set(PY_LIB_FILES
+    "src/py/server-no-network.cpp"
+    "src/py/pytos.cpp"
+)
+
+add_library(cytos_lib STATIC ${SRC_FILES})
+add_executable(cytos ${EXE_FILES})
+add_library(pytos SHARED ${PY_LIB_FILES})
+
 if (WIN32)
-    add_executable(cytos ${SRC_FILES} "src/main.cpp")
     set_property(TARGET cytos PROPERTY CXX_STANDARD 20)
 
-    target_link_libraries(cytos uSockets zlib libssl libcrypto libuv iphlpapi userenv psapi cairo pixman-1 libpng16)
+    target_link_libraries(cytos PRIVATE cytos_lib uSockets zlib libssl libcrypto libuv iphlpapi userenv psapi cairo pixman-1 libpng16)
+
+    target_include_directories(pytos PRIVATE ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
+    target_link_libraries(pytos PRIVATE cytos_lib zlib cairo pixman-1 libpng16 ${Python3_LIBRARIES})
 else()
-    add_executable(cytos ${SRC_FILES} "src/main.cpp")
     target_link_libraries(cytos uSockets ssl crypto dl z libuv pthread cairo png pixman-1)
 endif()
 

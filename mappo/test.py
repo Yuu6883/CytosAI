@@ -3,19 +3,30 @@ import json
 import importlib
 import importlib.util
 from os import path
+import platform
 
-DLL_PATH = path.join(path.dirname(__file__), "..", "cytos", "out", "build", "x64-Release", "test.pyd")
+os_type = platform.system()
 
-spec = importlib.util.spec_from_file_location("my_module", DLL_PATH)
-my_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(my_module)
+# enable color
+if os_type == "Windows":
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
 
-def main():
-    arr = my_module.create_array()
-    print(arr)
+DLL_PATH = path.join(path.dirname(__file__), "..", "cytos", "out", "build", "x64-Release", "pytos.pyd")
 
+spec = importlib.util.spec_from_file_location("pytos", DLL_PATH)
+pytos = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(pytos)
 
 AGENTS = 8
+actions = [{"splits": 0, "ejects": 0, "lock_cursor": False, "cursor_x": 0, "cursor_y": 0} for _ in range(AGENTS)]
+
+def main():
+    game = pytos.create("ffa", AGENTS, 8)
+    
+    for _ in range(1000):
+        pytos.act(game, actions, 4)
 
 def connect():
     conn = HTTPConnection("localhost:3000")
@@ -27,7 +38,6 @@ def connect():
         print("failed to initialize agents")
         return
     
-    actions = [{"splits": 0, "ejects": 0, "lock_cursor": False, "cursor_x": 0, "cursor_y": 0} for _ in range(AGENTS)]
     data = json.dumps({ "actions": actions, "steps": 4 })
 
     try:
@@ -47,8 +57,7 @@ def connect():
                 break
     except:
         pass
-    
-    print("end")
 
 if __name__ == "__main__":
     main()
+    print("end")

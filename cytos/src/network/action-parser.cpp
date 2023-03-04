@@ -6,7 +6,7 @@
 using json = nlohmann::json;
 
 bool AgentManager::parse(AgentManager* manager, string_view buf) {
-    uint64_t start = uv_hrtime();
+    uint64_t start = hrtime();
     auto obj = json::parse(buf, nullptr, false);
     if (obj.is_discarded() || !obj.is_object()) return false;
 
@@ -15,7 +15,7 @@ bool AgentManager::parse(AgentManager* manager, string_view buf) {
     if (!action_arr.is_array() || !steps.is_number_unsigned()) return false;
     if (steps > 16) return false;
 
-    if (action_arr.size() != manager->agents.size()) {
+    if (action_arr.size() != manager->agent_num()) {
         return false;
     }
 

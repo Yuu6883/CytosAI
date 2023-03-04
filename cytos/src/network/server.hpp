@@ -24,15 +24,7 @@ using std::unordered_set;
 using std::vector;
 using namespace std::chrono;
 
-#define UWS_HTTPRESPONSE_NO_WRITEMARK
-#include <uwebsockets/App.h>
-
-#define NOMINMAX
-#include <uv.h>
-
-#include "../misc/logger.hpp"
 #include "../misc/pool.hpp"
-#include "../modes/options.hpp"
 
 using std::string;
 using std::string_view;
@@ -40,6 +32,8 @@ using std::vector;
 
 struct Engine;
 struct VSEngine;
+
+struct us_listen_socket_t;
 
 struct PortConfig {
     int port;
@@ -57,9 +51,6 @@ class readline;
 class Server {
     friend Engine;
     friend readline;
-
-    bool recover = false;
-    bool closing = false;
 
     vector<thread*> threads;
     vector<us_listen_socket_t*> sockets;

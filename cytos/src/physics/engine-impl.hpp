@@ -99,10 +99,9 @@ bool Engine::start() {
 }
 
 void Engine::tick(float dt) {
-    if (!running) return;
     if (shouldRestart) restart();
 
-    uint64_t t0 = uv_hrtime(), t1, t2, t3, t4, t5;
+    uint64_t t0 = hrtime(), t1, t2, t3, t4, t5;
 
     spawnPellets();
     spawnViruses();
@@ -511,7 +510,7 @@ void TemplateEngine<T>::handleInput(float dt) {
 
     static std::uniform_int_distribution<int> rngBool(0, 1);
 
-    uint64_t t0 = uv_hrtime(), t1, t2, t3;
+    uint64_t t0 = hrtime(), t1, t2, t3;
 
     aliveControls.clear();
 
@@ -1180,7 +1179,7 @@ void TemplateEngine<T>::resolve(float dt) {
 
     mutex qm;
 
-    uint64_t t0 = uv_hrtime(), t1, t2, t3, t4, t5, t6, t7, t8;
+    uint64_t t0 = hrtime(), t1, t2, t3, t4, t5, t6, t7, t8;
 
     vector<Control*> temp;
     temp.reserve(controls.size());

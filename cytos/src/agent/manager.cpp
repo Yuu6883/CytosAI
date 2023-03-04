@@ -16,13 +16,12 @@ void AgentManager::init(uint16_t num_agents) {
         agent->remove();
         engine->freeHandle(agent);
     }
-    agents.clear();
-
-    for (auto i = 0; i < num_agents; i++) {
-        auto agent = new Agent(server, i);
+    agents.resize(num_agents);
+    
+    for (uint16_t i = 0; i < num_agents; i++) {
+        auto agent = agents[i] = new Agent(server, i);
         agent->setEngine(engine);
         agent->join();
-        agents.push_back(agent);
 
         // pair up agent as team
         if (i & 1) {
@@ -54,7 +53,7 @@ bool AgentManager::act(vector<Agent::Action>& actions, uint8_t steps) {
         }
     }
 
-    uint64_t t0 = uv_hrtime(), t1, t2;
+    uint64_t t0 = hrtime(), t1, t2;
 
     // Timesteps
     for (auto _ = 0; _ < steps; _++) server->tick();
@@ -62,7 +61,10 @@ bool AgentManager::act(vector<Agent::Action>& actions, uint8_t steps) {
 
     // Calculate reward
     for (auto& agent : agents) {
-        server->threadPool.enqueue([&] { auto buf = agent->observe(); });
+        server->threadPool.enqueue([&] {
+            auto buf = agent->observe();
+            // logger::debug("agent %s output: <buf %i>\n", agent->gatewayID().data(), buf.size());
+        });
     }
     server->threadPool.sync();
     auto m2 = time_func(t1, t2);

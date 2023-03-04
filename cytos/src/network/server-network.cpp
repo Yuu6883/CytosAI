@@ -1,10 +1,18 @@
 #include <fstream>
 
+#define UWS_HTTPRESPONSE_NO_WRITEMARK
+#include <uwebsockets/App.h>
+
+#define NOMINMAX
+#include <uv.h>
+
 #include "../agent/manager.hpp"
 #include "../entity/handle.hpp"
+#include "../misc/logger.hpp"
+#include "../modes/options.hpp"
+#include "../physics/engine.hpp"
 #include "server.hpp"
 #include "writer.hpp"
-
 struct read_ctx {
     // ~read_ctx() { logger::debug("read_ctx::~read_ctx\n"); }
     bool aborted = false;
@@ -60,7 +68,7 @@ bool Server::open(ServerConfig config) {
                         [&](uWS::HttpResponse<false>* res,
                             uWS::HttpRequest* req) {
                             auto ctx = std::make_shared<read_ctx>();
-                            ctx->start = uv_hrtime();
+                            ctx->start = hrtime();
 
                             res->onData([&, res, ctx](std::string_view chunk,
                                                       bool isFin) mutable {
@@ -128,3 +136,23 @@ bool Server::open(ServerConfig config) {
 
     return true;
 };
+
+bool Server::close() {
+    if (!isOpen()) return false;
+
+    for (auto [_, e] : engines) e->stop();
+
+    for (auto socket : sockets) {
+        us_listen_socket_close(0, socket);
+    }
+    sockets.clear();
+
+    for (auto t : threads) {
+        if (t->joinable()) t->join();
+        delete t;
+    }
+    threads.clear();
+
+    logger::debug("Game servers closed\n");
+    return true;
+}
