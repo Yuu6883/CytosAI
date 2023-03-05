@@ -4,29 +4,33 @@ import importlib
 import importlib.util
 from os import path
 import platform
+from PIL import Image
+import time
+import numpy as np
 
-os_type = platform.system()
+from lib.pytos import Pytos
 
-# enable color
-if os_type == "Windows":
-    import ctypes
-    kernel32 = ctypes.windll.kernel32
-    kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
-
-DLL_PATH = path.join(path.dirname(__file__), "..", "cytos", "out", "build", "x64-Release", "pytos.pyd")
-
-spec = importlib.util.spec_from_file_location("pytos", DLL_PATH)
-pytos = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(pytos)
+# gc.set_debug(gc.DEBUG_LEAK)
 
 AGENTS = 8
 actions = [{"splits": 0, "ejects": 0, "lock_cursor": False, "cursor_x": 0, "cursor_y": 0} for _ in range(AGENTS)]
 
 def main():
-    game = pytos.create("ffa", AGENTS, 8)
+    game = Pytos(n_agents=AGENTS, threads=8)
+
+    start_time = time.time()
     
-    for _ in range(1000):
-        pytos.act(game, actions, 4)
+    for i in range(10_000):
+        results = game.act(actions, steps=4)
+
+    end_time = time.time()
+
+    print(f"Elapsed time: {end_time - start_time} seconds")
+
+    for i in range(len(results)):
+        state = results[i]["state"]
+        img = Image.fromarray(state)
+        img.save(f"pytos-agent#{i}.png")
 
 def connect():
     conn = HTTPConnection("localhost:3000")

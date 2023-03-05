@@ -15,7 +15,7 @@ bool AgentManager::parse(AgentManager* manager, string_view buf) {
     if (!action_arr.is_array() || !steps.is_number_unsigned()) return false;
     if (steps > 16) return false;
 
-    if (action_arr.size() != manager->agent_num()) {
+    if (action_arr.size() != manager->agents.size()) {
         return false;
     }
 

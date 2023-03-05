@@ -8,16 +8,14 @@ using std::vector;
 
 class Server;
 
-class AgentManager {
+struct AgentManager {
     vector<Agent*> agents;
-
-   public:
     Server* server;
     AgentManager(Server* server) : server(server){};
+    ~AgentManager();
 
     void init(uint16_t num_agents);
     bool act(vector<Agent::Action>& actions, uint8_t steps);
-    size_t agent_num() { return agents.size(); };
     // protocol parse
     static bool parse(AgentManager* manager, string_view buf);
 };

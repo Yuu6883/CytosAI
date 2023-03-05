@@ -32,8 +32,11 @@ static PyObject* pytos_create(PyObject* self, PyObject* args) {
     auto capsule = PyCapsule_New(manager, CAP_NAME, [](PyObject* obj) {
         auto m =
             static_cast<AgentManager*>(PyCapsule_GetPointer(obj, CAP_NAME));
-        delete m->server;
+        auto server = m->server;
+        // delete manager first -> delete agents (which has access to engine)
         delete m;
+        // then delete server -> delete engines
+        delete server;
     });
 
     if (!capsule) {
@@ -80,7 +83,7 @@ static PyObject* pytos_act(PyObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (array_length != manager->agent_num()) {
+    if (array_length != manager->agents.size()) {
         PyErr_SetString(PyExc_AssertionError,
                         "Action array length must match internal agent number");
         return NULL;
@@ -94,7 +97,6 @@ static PyObject* pytos_act(PyObject* self, PyObject* args) {
         if (!PyDict_Check(item)) {
             PyErr_SetString(PyExc_TypeError,
                             "Expected a dictionary object in action array");
-            Py_DECREF(item);
             break;
         }
 
@@ -110,7 +112,6 @@ static PyObject* pytos_act(PyObject* self, PyObject* args) {
             !PyLong_Check(eject_obj) || !PyBool_Check(lockc_obj) ||
             !PyNumber_Check(cursor_x_obj) || !PyNumber_Check(cursor_y_obj)) {
             PyErr_SetString(PyExc_AssertionError, "Unexpected action object");
-            Py_DECREF(item);
             break;
         }
 
@@ -123,8 +124,6 @@ static PyObject* pytos_act(PyObject* self, PyObject* args) {
 
         action.splits = std::min(action.splits, uint16_t(5));
         action.ejects = std::min(action.ejects, uint16_t(5));
-
-        Py_DECREF(item);
     }
 
     bool success = false;
@@ -132,11 +131,55 @@ static PyObject* pytos_act(PyObject* self, PyObject* args) {
         success = manager->act(actions, steps);
     }
 
-    if (success) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
+    if (!success) Py_RETURN_NONE;
+
+    auto list = PyList_New(array_length);
+
+    for (Py_ssize_t i = 0; i < array_length; ++i) {
+        auto agent = manager->agents[i];
+
+        if (agent->state.size() != Agent::DIM * Agent::DIM * 4) {
+            PyErr_SetString(PyExc_AssertionError,
+                            "Unexpected state buffer size");
+            break;
+        }
+
+        auto info = PyDict_New();
+
+        PyDict_SetItemString(info, "reward", PyFloat_FromDouble(0.0));
+
+        auto data = (void*)agent->state.data();
+        agent->state = string_view(nullptr, 0);
+
+        npy_intp dims[] = {Agent::DIM, Agent::DIM, 3};
+        npy_intp strides[] = {4 * Agent::DIM, 4, 1};
+
+        auto pyArray = PyArray_NewFromDescr(&PyArray_Type,
+                                            PyArray_DescrFromType(NPY_UINT8), 3,
+                                            dims, strides, data, 0, NULL);
+
+        PyDict_SetItemString(info, "state", pyArray);
+
+        PyObject* capsule =
+            PyCapsule_New(data, "state_buffer", [](PyObject* obj) {
+                void* data = reinterpret_cast<int*>(
+                    PyCapsule_GetPointer(obj, "state_buffer"));
+                free(data);
+            });
+
+        PyArray_SetBaseObject((PyArrayObject*)pyArray, capsule);
+
+        PyList_SetItem(list, i, info);
+
+        Py_DECREF(pyArray);
+
+        // logger::debug("dict refcount: %i\n", PyArray_REFCOUNT(info));
+        // logger::debug("arr  refcount: %i\n", PyArray_REFCOUNT(pyArray));
+        PyObject_GC_Track(info);
     }
+
+    if (PyErr_Occurred()) return NULL;
+    return list;
 }
 
 static PyMethodDef module_methods[] = {

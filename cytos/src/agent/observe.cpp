@@ -4,8 +4,6 @@
 #include "../physics/engine.hpp"
 #include "agent.hpp"
 
-constexpr int32_t DIM = 128;
-
 static thread_local std::unique_ptr<cairo_surface_t,
                                     decltype(&cairo_surface_destroy)>
     surface_ptr(nullptr, &cairo_surface_destroy);

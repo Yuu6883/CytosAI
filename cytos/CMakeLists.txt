@@ -11,27 +11,35 @@ if (WIN32)
     # include_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/)
 
     message("Arch: ${VCPKG_TARGET_TRIPLET}, Build type: ${CMAKE_BUILD_TYPE}")
-    
-    if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-        link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib/)
-        link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}-static/lib/)
-        link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/)
-    else()
-        link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}-static/lib/)
-        link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/)
-    endif()
 
     find_package(Python3 ${PYTHON_VERSION} EXACT COMPONENTS NumPy)
 
     if(Python3_FOUND)
         message("Found Python3: ${Python3_EXECUTABLE}")
         message("Python3 version: ${Python3_VERSION}")
+        message("Python3 lib: ${Python3_LIBRARIES}")
         message("NumPy version: ${Python3_NumPy_VERSION}")
     else()
         message(FATAL_ERROR "Python3 not found")
     endif()
 
+    if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+        link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib/)
+        link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}-static/lib/)
+        link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/)
+
+        # string(REGEX REPLACE "python([0-9]+)\\.lib" "python\\1_d.lib" Python3_DEBUG_LIB ${Python3_LIBRARIES})
+        # message("Python3 debug lib: ${Python3_DEBUG_LIB}")
+        # list(APPEND Python3_LIBRARIES ${Python3_DEBUG_LIB})
+    else()
+        link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}-static/lib/)
+        link_directories(${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/)
+    endif()
+
     set(CMAKE_SHARED_LIBRARY_SUFFIX ".pyd")
+
+    # set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /fsanitize=address")
+    # set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /fsanitize=address /Zi")
 else()
     include_directories($ENV{VCPKG_ROOT}/installed/x64-linux/include/)
     link_directories($ENV{VCPKG_ROOT}/installed/x64-linux/lib/)
@@ -74,6 +82,7 @@ add_library(pytos SHARED ${PY_LIB_FILES})
 
 if (WIN32)
     set_property(TARGET cytos PROPERTY CXX_STANDARD 20)
+    link_directories()
 
     target_link_libraries(cytos PRIVATE cytos_lib uSockets zlib libssl libcrypto libuv iphlpapi userenv psapi cairo pixman-1 libpng16)
 
